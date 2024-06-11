@@ -1,4 +1,9 @@
 ### Tidy and Review all code at the end. Make sure everything is of industry practice (ogranisation, varaible delecration (how and where), etc)
+####
+
+# REMOVE TEST "PRINTS", AND ANY OTHER TESTING FLAGS
+
+###
 import pygame
 from pygame.locals import *
 
@@ -105,7 +110,7 @@ class Pieces:
 
     
     # Highlighting pieces based on game state
-    def highlight_pieces(self): # Working on Highlighting for selected pieces, based on turn cycle. How to capture selected piece coords into argument?
+    def highlight_pieces(self): # Working on Highlighting for selected pieces, based on turn cycle.
         
         match self.turn_cycle:
             case 0: # White turn, no selection
@@ -119,7 +124,10 @@ class Pieces:
                 for i in range(len(self.white_pieces)):
                     if self.piece_selection == i:
                         pygame.draw.rect(self.parent_surface, "red", [self.white_coords[i][0] * 100,self.white_coords[i][1] * 100, 100, 100], 1,)
-                        
+                # Highlights valid moves
+                for i in range(len(self.valid_moves)):
+                    pygame.draw.rect(self.parent_surface, "green", [self.valid_moves[i][0] * 100,self.valid_moves[i][1] * 100, 100, 100], 1,)
+
 
             case 2: # Black turn, no selection
                 Game.outline_tiles(self.parent_surface)
@@ -132,6 +140,9 @@ class Pieces:
                 for i in range(len(self.black_pieces)):
                     if self.piece_selection == i:
                         pygame.draw.rect(self.parent_surface, "red", [self.black_coords[i][0] * 100,self.black_coords[i][1] * 100, 100, 100], 1,)
+                # Highlights valid moves
+                for i in range(len(self.valid_moves)):
+                    pygame.draw.rect(self.parent_surface, "green", [self.valid_moves[i][0] * 100,self.valid_moves[i][1] * 100, 100, 100], 1,)
                         
             case _:
                 pass
@@ -149,80 +160,145 @@ class Pieces:
                     if self.clicked_coords == self.white_coords[i]:
                         self.piece_selection = i
                         Game.turn_cycler()
+                        print("Total White Turns: ", Game.player_1_turns)
+
                     
             elif self.turn_cycle == 1:
-                self.previous_index_w = self.piece_selection
+                self.previous_index_w = self.piece_selection # Previous white piece selected index
+                self.prev_white_coords = self.white_coords[self.previous_index_w] # Previous white piece coords
                 self.move_piece()
 
         # Black turn, no selection
             if self.turn_cycle == 2:
-                self.previous_index_b = self.piece_selection
                 self.highlight_pieces()
                 for i in range(len(self.black_coords)):
                     if self.clicked_coords == self.black_coords[i]:
                         self.piece_selection = i
                         Game.turn_cycler()
+                        print("Total Black Turns: ", Game.player_2_turns)
 
             elif self.turn_cycle == 3:
-                self.previous_index_b = self.piece_selection
+                self.previous_index_b = self.piece_selection # Previous black piece selected index
+                self.prev_black_coords = self.black_coords[self.previous_index_b] # Previous white piece coords
                 self.move_piece()
+
 
             self.prev_cc = self.clicked_coords # Stores previously clicked_coords
 
     def move_piece(self):
 
-        self.eliminated_piece() # Checks if piece was eliminated before moving
-
-        if self.turn_cycle == 1:
+        if self.turn_cycle == 1:  # White's turn to move
+            piece_type = self.piece_list.index(self.white_pieces[self.piece_selection])
+            valid = self.is_valid(piece_type)
             self.highlight_pieces()
-            piece_type = self.piece_list.index(self.white_pieces[self.piece_selection]) # To test blitting piece moving
 
-            if self.clicked_coords not in self.white_coords:
+            if self.clicked_coords not in self.white_coords and valid:
+                self.eliminated_piece()
                 self.white_coords[self.piece_selection] = self.clicked_coords
-                #self.valid_move()
-                print("White Coords Changed")
-                self.parent_surface.blit(self.white_images[piece_type], (self.white_coords[self.piece_selection][0] * 100 + 10, self.white_coords[self.piece_selection][1] * 100 + 10))
-                # Delete previous  piece HERE
-                self.delete_piece(1, self.prev_cc)
+                self.parent_surface.blit(self.white_images[piece_type], (self.clicked_coords[0] * 100 + 10, self.clicked_coords[1] * 100 + 10))
+                self.delete_piece(1, self.prev_white_coords) # delete piece upon moving
                 Game.turn_cycler()
 
-            elif self.clicked_coords != self.prev_cc and self.clicked_coords in self.white_coords: # Allows player to change piece selected
+            elif self.clicked_coords != self.prev_white_coords and self.clicked_coords in self.white_coords: # Allows player to change piece selected
                 Game.master_turn_cycle = 0
 
-        elif self.turn_cycle == 3:
+        elif self.turn_cycle == 3:  # Black's turn to move
+            piece_type = self.piece_list.index(self.black_pieces[self.piece_selection])
+            valid = self.is_valid(piece_type)
             self.highlight_pieces()
-            piece_type = self.piece_list.index(self.black_pieces[self.piece_selection]) # To test blitting piece moving
 
-            if self.clicked_coords not in self.black_coords:
+            if self.clicked_coords not in self.black_coords and valid:
+                self.eliminated_piece()
                 self.black_coords[self.piece_selection] = self.clicked_coords
-                print("Black Coords Changed") # Blit here, valid move checker here, etc
-                self.parent_surface.blit(self.black_images[piece_type], (self.black_coords[self.piece_selection][0] * 100 + 10, self.black_coords[self.piece_selection][1] * 100 + 10))
-                # Delete previous  piece HERE
-                self.delete_piece(1, self.prev_cc)
+                self.parent_surface.blit(self.black_images[piece_type], (self.clicked_coords[0] * 100 + 10, self.clicked_coords[1] * 100 + 10))
+                self.delete_piece(1, self.prev_black_coords)
                 Game.turn_cycler()
-            
-            elif self.clicked_coords != self.prev_cc and self.clicked_coords in self.black_coords: # Allows player to change piece selected
+
+            elif self.clicked_coords != self.prev_black_coords and self.clicked_coords in self.black_coords: # Allows player to change piece selected
                 Game.master_turn_cycle = 2
 
+    #Movement System Blueprint #1
+    def is_valid(self, piece_type = 0):
+        flag = False
 
-    # Piece collision detection and coord deletion of piece upon collision, calls delete_piece() to erase piece from board
-    def eliminated_piece(self):
-        # self.clicked_coords: #Holds white selected piece in turn cycle 1 | #Holds black selected piece in turn cycle 3
+        if self.piece_list[piece_type] == "pawn":
+            flag = self.check_pawn()
             
-        if self.turn_cycle == 1:
-            if self.clicked_coords in self.black_coords:
-                self.black_coords.remove(self.black_coords[self.previous_index_b])
-                self.delete_piece(2)
-                print(self.turn_cycle,"White Won - Collision!")
-                #blit_eliminated_small_piece()
-                #***************Should change turn cycle to start at other colors turn, once it has eliminated a piece
 
-        elif self.turn_cycle == 3:
-            if self.clicked_coords in self.white_coords:
-                self.white_coords.remove(self.white_coords[self.previous_index_w])
-                self.delete_piece(2)
-                print(self.turn_cycle,"Black Won - Collision!")
+        elif self.piece_list[piece_type] == "king":
+            flag = self.check_king()
 
+        elif self.piece_list[piece_type] == "queen":
+            flag = self.check_queen()
+
+        elif self.piece_list[piece_type] == "knight":
+            flag = self.check_knight()
+
+        elif self.piece_list[piece_type] == "bishop":
+            flag = self.check_bishop()
+
+        else:
+            flag = self.check_rook()
+        return flag
+
+    #Movement System Blueprint #2
+    def check_pawn(self):
+        
+        print("Pawn Coords: ", self.white_coords[self.piece_selection])
+        print("Valid Moves :", self.valid_moves)
+        match self.turn_cycle:
+
+            # White Turn to move
+            case 1:
+
+                if Game.player_1_turns == 1:
+                    self.valid_moves = [((self.white_coords[self.piece_selection][0]), (self.white_coords[self.piece_selection][1] + 1)),
+                                        ((self.white_coords[self.piece_selection][0]), (self.white_coords[self.piece_selection][1] + 2))]
+                else:
+                    self.valid_moves = [((self.white_coords[self.piece_selection][0] + 1), (self.white_coords[self.piece_selection][1] + 1)),
+                                        ((self.white_coords[self.piece_selection][0] - 1), (self.white_coords[self.piece_selection][1] + 1))]
+                if self.clicked_coords in self.valid_moves:
+                    return True
+                else:
+                    return False
+
+            # Black Turn to move
+            case 3:
+
+                if Game.player_2_turns == 1:
+                    self.valid_moves = [((self.black_coords[self.piece_selection][0]), (self.black_coords[self.piece_selection][1] - 1)),
+                                        ((self.black_coords[self.piece_selection][0]), (self.black_coords[self.piece_selection][1] - 2))]
+                else:
+                    self.valid_moves = [((self.black_coords[self.piece_selection][0] + 1), (self.black_coords[self.piece_selection][1] - 1)),
+                    ((self.black_coords[self.piece_selection][0] - 1), (self.black_coords[self.piece_selection][1] - 1))]
+
+                if self.clicked_coords in self.valid_moves:
+                    return True
+                else:
+                    return False
+
+
+
+    def eliminated_piece(self):
+        if self.turn_cycle == 1 and self.clicked_coords in self.black_coords:
+            eliminated_index = self.black_coords.index(self.clicked_coords)
+            eliminated_piece = self.black_pieces.pop(eliminated_index) # Removes the eliminated black piece from the piece list
+            self.black_coords.pop(eliminated_index) # Removes the specific eliminated black piece coord based on its index from black_coords list
+            self.eliminated_b.append(eliminated_piece) # Adds eliminated piece to list
+            print("White captures:", eliminated_piece)
+            self.delete_piece(2)
+
+        elif self.turn_cycle == 3 and self.clicked_coords in self.white_coords:
+            eliminated_index = self.white_coords.index(self.clicked_coords)
+            eliminated_piece = self.white_pieces.pop(eliminated_index)
+            self.white_coords.pop(eliminated_index)
+            self.eliminated_w.append(eliminated_piece)
+            print("Black captures:", eliminated_piece)
+            self.delete_piece(2)
+        #print("Elminated White Pieces: ", self.eliminated_w,)
+        #print("Elminated Black Pieces: ", self.eliminated_b,)
+        
+        self.draw_elim(self.eliminated_w, self.eliminated_b)
 
     def delete_piece(self, mode = 0, previous_coords = (0,0)):
         # Deletes piece by bliting the chess board square with its correspoding color
@@ -233,23 +309,40 @@ class Pieces:
                 if previous_coords != self.clicked_coords:
                     if previous_coords in self.lg_coords:
                         pygame.draw.rect(self.parent_surface, "light grey", [previous_coords[0] * 100,previous_coords[1] * 100, 100, 100], 50,)
+                        print("Deleted")
                     else:
                         pygame.draw.rect(self.parent_surface, "dark grey", [previous_coords[0] * 100,previous_coords[1] * 100, 100, 100], 50,)
+                        
             case 2:
                 if self.clicked_coords in self.lg_coords:
                     pygame.draw.rect(self.parent_surface, "light grey", [self.clicked_coords[0] * 100,self.clicked_coords[1] * 100, 100, 100], 50,)
                 else:
                     pygame.draw.rect(self.parent_surface, "dark grey", [self.clicked_coords[0] * 100,self.clicked_coords[1] * 100, 100, 100], 50,)
 
+    # Draws eliminated piece on the side screen, takes eliminated piece list of each colour
+    def draw_elim(self, eliminated_white, eliminated_black):
+        
+        elim_pos_y = list(range(10,730,45)) # Creates a list for the y-axis position of eliminated pieces (10 - y-axis offset, 730 - max eliminated piece pos, 45 - scale of small images)
 
-    # method load the eliminated smaller form of the piece on the left side
-    # I can remove the piece by making it appear "transparent"
+        if eliminated_white or eliminated_black:
+            
+            for i in range(0,len(eliminated_white)):
+                index_w = self.piece_list.index(eliminated_white[i])
+                #print("Index of white piece: ", index_w)
+                self.parent_surface.blit(self.small_white_images[index_w], (800, elim_pos_y[i]))
 
+            for i in range(0,len(eliminated_black)):
+                index_b = self.piece_list.index(eliminated_black[i])
+                #print("Index of black piece: ", index_b)
+                self.parent_surface.blit(self.small_black_images[index_b], (900, elim_pos_y[i]))
+    
 
 class Game:
     # Game state tracking - Global Variable
     # Turn Tracker: 0 = White Turn, No Selection, 1 = White turn, Piece Selected, 2 = Black Turn, No selection, 3 = Black Turn, Piece Selected
     master_turn_cycle = 0 # change to getter and setter mechanism
+    player_1_turns = 1 # Number of player 1 turns
+    player_2_turns = 0 # Number of player 2 turns
 
     def __init__(self):
         self.game_running = True
@@ -280,7 +373,7 @@ class Game:
         # Mouse x and y coords
         self.x = 0
         self.y = 0
-        self.clicked_coords = [(0,0)] # init clicked coords
+        self.clicked_coords = [(0,1)] # init clicked coords - starts at player one's first pawn
         self.pieces = Pieces(self.surface, self.all_coords, self.lg_squares, self.dg_squares)
         self.start_screen()
         
@@ -293,11 +386,8 @@ class Game:
         pygame.display.flip()
 
 
-        while (self.game_running):  # Infinite game loop
-            
-           # self.timer.tick(self.fps) # Set game to 60 FPS
+        while (self.game_running):  # Start Screen Loop
 
-            # Game event handling
             for event in pygame.event.get():
 
                 if event.type == KEYDOWN:
@@ -305,7 +395,7 @@ class Game:
                         self.exit()
 
                     elif event.key == K_SPACE:
-                      self.game_run()
+                        self.game_run()
 
                 elif event.type == QUIT:
                     self.exit()
@@ -376,6 +466,12 @@ class Game:
         if cls.master_turn_cycle > 3:
             cls.master_turn_cycle = 0
 
+        # Tracks total amount of turns had by players
+        if cls.master_turn_cycle == 0:
+            cls.player_1_turns += 1
+        elif cls.master_turn_cycle == 2:
+            cls.player_2_turns += 1
+
     def play_chess(self):
 
        self.pieces.check_clicked(Game.master_turn_cycle, self.clicked_coords[0]) # Checks if a piece is clicked
@@ -395,8 +491,6 @@ class Game:
         pygame.display.flip()
         while (self.game_running):  # Infinite game loop
             
-            self.timer.tick(self.fps) # Set game to 60 FPS
-
             # Game event handling
             for event in pygame.event.get():
 
@@ -408,14 +502,13 @@ class Game:
                     self.x = event.pos[0] // 100 # // (floor) 100 formats mouse pos integers to match piece coord values
                     self.y = event.pos[1] // 100
                     self.clicked_coords = [(self.x,self.y)]
-                    
-                    
-                    
-    
+
                 elif event.type == QUIT:
                     self.exit()
 
             self.play_chess()
+
+            self.timer.tick(self.fps) # Set game to 60 FPS
 
     def exit(self):
         self.game_running = False
