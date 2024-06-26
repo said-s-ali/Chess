@@ -18,7 +18,7 @@ Welcome to the Classical Chess Game created by me! This is a traditional 2-Playe
 ## Installation
 ### 1. Clone the repository:
   #### bash
-  #### `git clone https://github.com/yourusername/chess-game.git`
+  #### `git clone https://github.com/said-s-ali/Chess.git`
 
 ### 2. Navigate to the project directory:
 #### bash
