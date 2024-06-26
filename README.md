@@ -22,7 +22,7 @@ Welcome to the Classical Chess Game created by me! This is a traditional 2-Playe
 
 ### 2. Navigate to the project directory:
 #### bash
-#### `cd chess-game`
+#### `cd Chess`
 
 ### 3. Install the required dependencies:
 #### bash
